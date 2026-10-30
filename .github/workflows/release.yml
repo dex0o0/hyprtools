@@ -81,6 +81,12 @@ jobs:
         run: |
           file dist/rofi-search-linux-x86_64-musl
 
+          if readelf -l dist/rofi-search-linux-x86_64-musl | grep -q INTERP; then
+            echo "Binary is dynamically linked!"
+            exit 1
+          fi
+
+          echo "Static binary verified."
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v3
         with:
