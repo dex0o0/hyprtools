@@ -1,0 +1,90 @@
+name: HyprTools CI and Release
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*.*.*"
+
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test Workspace
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Run Clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: Run tests
+        run: cargo test --workspace
+
+  release:
+    name: Build and Publish Release
+    needs: test
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-unknown-linux-musl
+
+      - name: Install musl tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y musl-tools
+
+      - name: Build static binary
+        run: |
+          cargo build \
+            --release \
+            --locked \
+            --target x86_64-unknown-linux-musl \
+            -p rofi-search
+
+      - name: Prepare release binary
+        run: |
+          mkdir -p dist
+
+          cp target/x86_64-unknown-linux-musl/release/rofi-search \
+             dist/rofi-search-linux-x86_64-musl
+
+          strip dist/rofi-search-linux-x86_64-musl
+
+      - name: Verify binary
+        run: |
+          file dist/rofi-search-linux-x86_64-musl
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v3
+        with:
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: |
+            dist/rofi-search-linux-x86_64-musl
