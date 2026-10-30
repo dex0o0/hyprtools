@@ -94,10 +94,11 @@ fn read_search_engine(path: &PathBuf) -> Result<String, Box<dyn Error>> {
             None
         };
 
-        if let Some(engine) = engine 
-            && !engine.is_empty() {
-                return Ok(engine.to_string());
-            }
+        if let Some(engine) = engine
+            && !engine.is_empty()
+        {
+            return Ok(engine.to_string());
+        }
     }
 
     Err("Search engine is not configured".into())
@@ -115,11 +116,12 @@ fn classify_input(input: &str) -> InputType {
     let lower = input.to_ascii_lowercase();
 
     if lower.starts_with("http://") || lower.starts_with("https://") {
-        if let Ok(url) = Url::parse(input) 
-            && matches!(url.scheme(), "http" | "https") && url.host().is_some() {
-                return InputType::Url(url.to_string());
+        if let Ok(url) = Url::parse(input)
+            && matches!(url.scheme(), "http" | "https")
+            && url.host().is_some()
+        {
+            return InputType::Url(url.to_string());
         }
-        
 
         return InputType::Search(input.to_string());
     }
@@ -127,17 +129,17 @@ fn classify_input(input: &str) -> InputType {
     // Try interpreting a bare address as HTTPS.
     let candidate = format!("https://{input}");
 
-    if let Ok(url) = Url::parse(&candidate) 
-        && let Some(host) = url.host_str() {
-            let is_ip = host.parse::<IpAddr>().is_ok();
-            let is_localhost = host == "localhost";
-            let is_domain = host.contains('.');
+    if let Ok(url) = Url::parse(&candidate)
+        && let Some(host) = url.host_str()
+    {
+        let is_ip = host.parse::<IpAddr>().is_ok();
+        let is_localhost = host == "localhost";
+        let is_domain = host.contains('.');
 
-            if is_ip || is_localhost || is_domain {
-                return InputType::Url(url.to_string());
-            }
+        if is_ip || is_localhost || is_domain {
+            return InputType::Url(url.to_string());
+        }
     }
-    
 
     InputType::Search(input.to_string())
 }
@@ -182,4 +184,3 @@ fn open_url(url: &str) -> Result<(), Box<dyn Error>> {
 fn notify(title: &str, message: &str) {
     let _ = Command::new("notify-send").arg(title).arg(message).status();
 }
-
