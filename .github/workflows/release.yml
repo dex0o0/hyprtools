@@ -3,13 +3,13 @@ name: HyprTools CI and Release
 on:
   push:
     branches:
-      - main
+      - master
     tags:
       - "v*.*.*"
 
   pull_request:
     branches:
-      - main
+      - master
 
 permissions:
   contents: read
