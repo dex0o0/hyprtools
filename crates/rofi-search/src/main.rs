@@ -184,3 +184,263 @@ fn open_url(url: &str) -> Result<(), Box<dyn Error>> {
 fn notify(title: &str, message: &str) {
     let _ = Command::new("notify-send").arg(title).arg(message).status();
 }
+
+// ==================
+// tests
+// ==================
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::{
+        fs,
+        path::PathBuf,
+        sync::atomic::{AtomicUsize, Ordering},
+    };
+
+    static TEMP_FILE_COUNTER: AtomicUsize = AtomicUsize::new(0);
+
+    fn temp_file_path() -> PathBuf {
+        let id = TEMP_FILE_COUNTER.fetch_add(1, Ordering::Relaxed);
+
+        std::env::temp_dir().join(format!("rofi-search-test-{}-{id}.lua", std::process::id()))
+    }
+
+    fn create_temp_config(content: &str) -> PathBuf {
+        let path = temp_file_path();
+        fs::write(&path, content).expect("Failed to create temporary config");
+        path
+    }
+
+    // --------------------------------------------------
+    // classify_input tests
+    // --------------------------------------------------
+
+    #[test]
+    fn classifies_http_url() {
+        let result = classify_input("http://example.com");
+
+        assert!(matches!(
+            result,
+            InputType::Url(url) if url == "http://example.com/"
+        ));
+    }
+
+    #[test]
+    fn classifies_https_url() {
+        let result = classify_input("https://github.com");
+
+        assert!(matches!(
+            result,
+            InputType::Url(url) if url == "https://github.com/"
+        ));
+    }
+
+    #[test]
+    fn classifies_bare_domain_as_url() {
+        let result = classify_input("github.com");
+
+        assert!(matches!(
+            result,
+            InputType::Url(url) if url == "https://github.com/"
+        ));
+    }
+
+    #[test]
+    fn classifies_ip_address_as_url() {
+        let result = classify_input("192.168.1.1");
+
+        assert!(matches!(
+            result,
+            InputType::Url(url) if url == "https://192.168.1.1/"
+        ));
+    }
+
+    #[test]
+    fn classifies_localhost_as_url() {
+        let result = classify_input("localhost");
+
+        assert!(matches!(
+            result,
+            InputType::Url(url) if url == "https://localhost/"
+        ));
+    }
+
+    #[test]
+    fn classifies_search_query() {
+        let result = classify_input("rust programming language");
+
+        assert!(matches!(
+            result,
+            InputType::Search(query)
+                if query == "rust programming language"
+        ));
+    }
+
+    #[test]
+    fn classifies_single_word_as_search() {
+        let result = classify_input("rust");
+
+        assert!(matches!(
+            result,
+            InputType::Search(query) if query == "rust"
+        ));
+    }
+
+    #[test]
+    fn classifies_invalid_explicit_url_as_search() {
+        let result = classify_input("https://");
+
+        assert!(matches!(
+            result,
+            InputType::Search(query) if query == "https://"
+        ));
+    }
+
+    #[test]
+    fn trims_input_before_classification() {
+        let result = classify_input("  github.com  ");
+
+        assert!(matches!(
+            result,
+            InputType::Url(url) if url == "https://github.com/"
+        ));
+    }
+
+    // --------------------------------------------------
+    // build_search_url tests
+    // --------------------------------------------------
+
+    #[test]
+    fn builds_search_url() {
+        let result = build_search_url("https://www.google.com/search?q={}", "rust programming");
+
+        assert_eq!(
+            result.unwrap(),
+            "https://www.google.com/search?q=rust+programming"
+        );
+    }
+
+    #[test]
+    fn encodes_persian_search_query() {
+        let result =
+            build_search_url("https://www.google.com/search?q={}", "برنامه نویسی Rust").unwrap();
+
+        let parsed = Url::parse(&result).unwrap();
+
+        let query = parsed
+            .query_pairs()
+            .find(|(key, _)| key == "q")
+            .map(|(_, value)| value.into_owned());
+
+        assert_eq!(query, Some("برنامه نویسی Rust".to_string()));
+    }
+
+    #[test]
+    fn encodes_special_characters() {
+        let result = build_search_url("https://example.com/search?q={}", "rust & cargo").unwrap();
+
+        let parsed = Url::parse(&result).unwrap();
+
+        let query = parsed
+            .query_pairs()
+            .find(|(key, _)| key == "q")
+            .map(|(_, value)| value.into_owned());
+
+        assert_eq!(query, Some("rust & cargo".to_string()));
+    }
+
+    #[test]
+    fn rejects_engine_without_placeholder() {
+        let result = build_search_url("https://example.com/search", "rust");
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn rejects_non_http_search_engine() {
+        let result = build_search_url("file:///search?q={}", "rust");
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn rejects_malformed_search_url() {
+        let result = build_search_url("https://[invalid]/search?q={}", "rust");
+
+        assert!(result.is_err());
+    }
+
+    // --------------------------------------------------
+    // read_search_engine tests
+    // --------------------------------------------------
+
+    #[test]
+    fn reads_double_quoted_search_engine() {
+        let path = create_temp_config(r#"search_engine = "https://www.google.com/search?q={}""#);
+
+        let result = read_search_engine(&path);
+
+        fs::remove_file(&path).unwrap();
+
+        assert_eq!(result.unwrap(), "https://www.google.com/search?q={}");
+    }
+
+    #[test]
+    fn reads_single_quoted_search_engine() {
+        let path = create_temp_config("search_engine = 'https://duckduckgo.com/?q={}'");
+
+        let result = read_search_engine(&path);
+
+        fs::remove_file(&path).unwrap();
+
+        assert_eq!(result.unwrap(), "https://duckduckgo.com/?q={}");
+    }
+
+    #[test]
+    fn ignores_commented_search_engine() {
+        let path = create_temp_config(
+            r#"
+            -- search_engine = "https://example.com/?q={}"
+            search_engine = "https://google.com/search?q={}"
+            "#,
+        );
+
+        let result = read_search_engine(&path);
+
+        fs::remove_file(&path).unwrap();
+
+        assert_eq!(result.unwrap(), "https://google.com/search?q={}");
+    }
+
+    #[test]
+    fn rejects_empty_search_engine() {
+        let path = create_temp_config(r#"search_engine = """#);
+
+        let result = read_search_engine(&path);
+
+        fs::remove_file(&path).unwrap();
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn rejects_missing_search_engine() {
+        let path = create_temp_config(r#"some_other_setting = "value""#);
+
+        let result = read_search_engine(&path);
+
+        fs::remove_file(&path).unwrap();
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn rejects_missing_config_file() {
+        let path = temp_file_path();
+
+        let result = read_search_engine(&path);
+
+        assert!(result.is_err());
+    }
+}
