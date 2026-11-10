@@ -459,4 +459,23 @@ mod tests {
 
         assert!(result.is_err());
     }
+
+    #[test]
+    fn ignores_multiline_commented_search_engine() {
+        let path = create_temp_config(
+            r#"
+        --[[
+        search_engine = "https://example.com/?q={}"
+        ]]
+
+        search_engine = "https://google.com/search?q={}"
+        "#,
+        );
+
+        let result = read_search_engine(&path);
+
+        fs::remove_file(&path).unwrap();
+
+        assert_eq!(result.unwrap(), "https://google.com/search?q={}");
+    }
 }
