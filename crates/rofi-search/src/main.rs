@@ -69,10 +69,26 @@ fn run() -> Result<(), Box<dyn Error>> {
 fn read_search_engine(path: &PathBuf) -> Result<String, Box<dyn Error>> {
     let config = fs::read_to_string(path)?;
 
+    let mut inside_multiline_comment = false;
+
     for line in config.lines() {
         let line = line.trim();
 
-        if line.starts_with("--") {
+        if inside_multiline_comment {
+            if line.contains("]]") {
+                inside_multiline_comment = false;
+            }
+            continue;
+        }
+
+        if line.starts_with("--[[") {
+            if !line.contains("]]") {
+                inside_multiline_comment = true;
+            }
+            continue;
+        }
+
+        if line.starts_with("--") || line.is_empty() {
             continue;
         }
 
