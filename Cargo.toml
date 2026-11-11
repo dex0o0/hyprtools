@@ -2,6 +2,7 @@
 resolver = "3"
 members = [
     "crates/rofi-search",
+    "crates/brightness-control"
 ]
 
 [workspace.package]
