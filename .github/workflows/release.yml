@@ -60,33 +60,40 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y musl-tools
 
-      - name: Build static binary
+      - name: Build static binaries
         run: |
           cargo build \
             --release \
             --locked \
             --target x86_64-unknown-linux-musl \
-            -p rofi-search
+            --workspace
 
-      - name: Prepare release binary
+      - name: Prepare release binaries
         run: |
           mkdir -p dist
 
           cp target/x86_64-unknown-linux-musl/release/rofi-search \
              dist/rofi-search-linux-x86_64-musl
 
+          cp target/x86_64-unknown-linux-musl/release/brightness-control \
+             dist/brightness-control-linux-x86_64-musl
+
           strip dist/rofi-search-linux-x86_64-musl
+          strip dist/brightness-control-linux-x86_64-musl
 
-      - name: Verify binary
+      - name: Verify static binaries
         run: |
-          file dist/rofi-search-linux-x86_64-musl
+          for binary in dist/*; do
+            file "$binary"
 
-          if readelf -l dist/rofi-search-linux-x86_64-musl | grep -q INTERP; then
-            echo "Binary is dynamically linked!"
-            exit 1
-          fi
+            if readelf -l "$binary" | grep -q INTERP; then
+              echo "$binary is dynamically linked!"
+              exit 1
+            fi
+          done
 
-          echo "Static binary verified."
+          echo "All binaries are statically linked."
+
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v3
         with:
@@ -94,3 +101,4 @@ jobs:
           fail_on_unmatched_files: true
           files: |
             dist/rofi-search-linux-x86_64-musl
+            dist/brightness-control-linux-x86_64-musl
