@@ -17,13 +17,12 @@ fn main() -> ExitCode {
 }
 
 fn run() -> Result<(), Box<dyn Error>> {
-    let Some(input)=prompt_brightness()? else {
-       return Ok(()); 
+    let Some(input) = prompt_brightness()? else {
+        return Ok(());
     };
 
     let percent = parse_brightness(&input)?;
 
-    
     // let mut args = env::args().skip(1);
     //
     // let percent: u8 = args
@@ -74,8 +73,7 @@ fn run() -> Result<(), Box<dyn Error>> {
 }
 
 fn prompt_brightness() -> Result<Option<String>, Box<dyn Error>> {
-    let theme_path =
-        env::var("HOME")? + "/.config/rofi/config-brightness.rasi";
+    let theme_path = env::var("HOME")? + "/.config/rofi/config-brightness.rasi";
 
     let output = Command::new("rofi")
         .args([
@@ -201,4 +199,3 @@ mod tests {
         assert!(parse_brightness("").is_err());
     }
 }
-
