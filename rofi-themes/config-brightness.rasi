@@ -1,0 +1,142 @@
+
+/* HyprTools — Brightness Control */
+
+configuration {
+    modi: "dmenu";
+    show-icons: false;
+    font: "JetBrainsMono Nerd Font 11";
+    display-dmenu: "Brightness";
+}
+
+* {
+    bg:           #171717;
+    bg-alt:       #222222;
+    fg:           #dedede;
+    muted:        #858585;
+    accent:       #d99b52;
+    border-color: #45403a;
+
+    background-color: transparent;
+    text-color: @fg;
+
+    margin: 0;
+    padding: 0;
+    spacing: 0;
+}
+
+window {
+    width: 440px;
+    border: 1px;
+    border-color: @border-color;
+    border-radius: 12px;
+    background-color: @bg;
+}
+
+mainbox {
+    padding: 20px;
+    spacing: 12px;
+    children: [ inputbar, message ];
+}
+
+inputbar {
+    background-color: @bg-alt;
+    border: 1px;
+    border-color: @border-color;
+    border-radius: 8px;
+    padding: 13px 15px;
+    spacing: 10px;
+    children: [ prompt, entry ];
+}
+
+prompt {
+    text-color: @accent;
+    font: "JetBrainsMono Nerd Font 11";
+}
+
+entry {
+    text-color: @fg;
+    placeholder: "Enter brightness (0-100)";
+    placeholder-color: @muted;
+    cursor: text;
+}
+
+message {
+    padding: 0 3px;
+}
+
+textbox {
+    text-color: @muted;
+    font: "JetBrainsMono Nerd Font 9";
+}
+
+
+/* HyprTools — Brightness Control */
+
+configuration {
+    modi: "dmenu";
+    show-icons: false;
+    font: "JetBrainsMono Nerd Font 11";
+    display-dmenu: "Brightness";
+}
+
+* {
+    bg:           #171717;
+    bg-alt:       #222222;
+    fg:           #dedede;
+    muted:        #858585;
+    accent:       #d99b52;
+    border-color: #45403a;
+
+    background-color: transparent;
+    text-color: @fg;
+
+    margin: 0;
+    padding: 0;
+    spacing: 0;
+}
+
+window {
+    width: 480px;
+    border: 1px;
+    border-color: @border-color;
+    border-radius: 12px;
+    background-color: @bg;
+}
+
+mainbox {
+    padding: 22px;
+    spacing: 14px;
+    children: [ inputbar, message ];
+}
+
+inputbar {
+    background-color: @bg-alt;
+    border: 1px;
+    border-color: @border-color;
+    border-radius: 9px;
+    padding: 15px;
+    spacing: 12px;
+    children: [ prompt, entry ];
+}
+
+prompt {
+    text-color: @accent;
+    font: "JetBrainsMono Nerd Font 11";
+}
+
+entry {
+    text-color: @fg;
+    placeholder: "Enter brightness (0-100)";
+    placeholder-color: @muted;
+    cursor: text;
+}
+
+message {
+    padding: 2px 4px;
+}
+
+textbox {
+    text-color: @muted;
+    font: "JetBrainsMono Nerd Font 9";
+}
+

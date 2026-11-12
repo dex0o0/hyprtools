@@ -1,0 +1,61 @@
+configuration {
+    font: "JetBrainsMono Nerd Font 11";
+    display-dmenu: "Search";
+}
+
+* {
+    bg:           #171717;
+    bg-alt:       #222222;
+    fg:           #dedede;
+    muted:        #858585;
+    accent:       #d99b52;
+    border-color: #45403a;
+
+    background-color: transparent;
+    text-color: @fg;
+
+    margin: 0;
+    padding: 0;
+    spacing: 0;
+}
+
+window {
+    width: 42%;
+    border: 1px;
+    border-color: @border-color;
+    border-radius: 12px;
+    background-color: @bg;
+    padding: 12px;
+    location: center;
+}
+
+mainbox {
+    children: [ inputbar ];
+    padding: 4px;
+}
+
+inputbar {
+    children: [ prompt, entry ];
+    spacing: 12px;
+    padding: 14px 16px;
+    background-color: @bg-alt;
+    border: 1px;
+    border-color: @border-color;
+    border-radius: 9px;
+}
+
+prompt {
+    text-color: @accent;
+    font: "JetBrainsMono Nerd Font 12";
+    vertical-align: 0.5;
+}
+
+entry {
+    expand: true;
+    cursor: text;
+    placeholder: "Search the web...";
+    placeholder-color: @muted;
+    text-color: @fg;
+    font: "JetBrainsMono Nerd Font 11";
+    background-color: transparent;
+}
