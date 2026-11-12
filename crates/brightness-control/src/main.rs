@@ -17,20 +17,27 @@ fn main() -> ExitCode {
 }
 
 fn run() -> Result<(), Box<dyn Error>> {
-    let mut args = env::args().skip(1);
+    let Some(input)=prompt_brightness()? else {
+       return Ok(()); 
+    };
 
-    let percent: u8 = args
-        .next()
-        .ok_or("Usage: brightness-control <0-100>")?
-        .parse()?;
+    let percent = parse_brightness(&input)?;
+
+    
+    // let mut args = env::args().skip(1);
+    //
+    // let percent: u8 = args
+    //     .next()
+    //     .ok_or("Usage: brightness-control <0-100>")?
+    //     .parse()?;
 
     if percent > 100 {
         return Err("Brightness must be between 0 and 100".into());
     }
 
-    if args.next().is_some() {
-        return Err("Too many arguments".into());
-    }
+    // if args.next().is_some() {
+    //     return Err("Too many arguments".into());
+    // }
 
     let current = get_brightness("get")?;
     let max = get_brightness("max")?;
@@ -56,7 +63,7 @@ fn run() -> Result<(), Box<dyn Error>> {
 
             set_brightness(&value.to_string())?;
 
-            thread::sleep(Duration::from_millis(10));
+            thread::sleep(Duration::from_millis(20));
         }
     }
 
@@ -66,6 +73,49 @@ fn run() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+fn prompt_brightness() -> Result<Option<String>, Box<dyn Error>> {
+    let theme_path =
+        env::var("HOME")? + "/.config/rofi/config-brightness.rasi";
+
+    let output = Command::new("rofi")
+        .args([
+            "-dmenu",
+            "-i",
+            "-config",
+            &theme_path,
+            "-p",
+            "Brightness",
+            "-mesg",
+            "Enter brightness (0-100)",
+        ])
+        .output()?;
+
+    if !output.status.success() {
+        return Ok(None);
+    }
+
+    let input = String::from_utf8(output.stdout)?;
+    let input = input.trim();
+
+    if input.is_empty() {
+        return Ok(None);
+    }
+
+    Ok(Some(input.to_string()))
+}
+
+fn parse_brightness(input: &str) -> Result<u8, String> {
+    let percent = input
+        .trim()
+        .parse::<u8>()
+        .map_err(|_| "Enter a valid number between 0 and 100".to_string())?;
+
+    if percent > 100 {
+        return Err("Brightness must be between 0 and 100".into());
+    }
+
+    Ok(percent)
+}
 fn get_brightness(command: &str) -> Result<u64, Box<dyn Error>> {
     let output = Command::new("brightnessctl").arg(command).output()?;
 
@@ -99,6 +149,7 @@ fn set_brightness(value: &str) -> Result<(), Box<dyn Error>> {
 
 #[cfg(test)]
 mod tests {
+    use crate::parse_brightness;
     #[test]
     fn calculates_target_brightness() {
         let max = 937u128;
@@ -130,4 +181,24 @@ mod tests {
 
         assert_eq!(first_step, 492);
     }
+
+    #[test]
+    fn accepts_valid_brightness() {
+        assert_eq!(parse_brightness("50").unwrap(), 50);
+        assert_eq!(parse_brightness("0").unwrap(), 0);
+        assert_eq!(parse_brightness("100").unwrap(), 100);
+    }
+
+    #[test]
+    fn rejects_brightness_above_100() {
+        assert!(parse_brightness("101").is_err());
+    }
+
+    #[test]
+    fn rejects_invalid_input() {
+        assert!(parse_brightness("abc").is_err());
+        assert!(parse_brightness("-10").is_err());
+        assert!(parse_brightness("").is_err());
+    }
 }
+
