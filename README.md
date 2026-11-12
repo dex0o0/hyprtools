@@ -1,20 +1,20 @@
 # HyprTools
 
-**A collection of lightweight Linux desktop utilities built with Rust, primarily designed for Hyprland.**
+**A collection of lightweight Linux desktop utilities written in Rust, designed primarily for Hyprland workflows.**
 
-HyprTools replaces selected shell scripts with small, standalone Rust applications. The project uses a Cargo workspace to keep each utility independent while sharing build, test, and release workflows.
+HyprTools is a collection of small, independent applications that replace selected shell scripts with Rust implementations.
 
-## Goals
+The goal is to build practical desktop utilities with minimal dependencies, predictable behavior, and maintainable code.
 
-- Replace useful Bash scripts with maintainable Rust applications.
-- Improve error handling and reliability.
-- Keep runtime dependencies minimal.
-- Integrate with existing Linux desktop utilities.
-- Build and distribute standalone binaries through GitHub Releases.
+## Features
+
+- Lightweight standalone Rust applications.
+- Integration with existing Linux desktop tools.
+- Rofi-based user interfaces.
+- Error handling and automated tests.
+- Automated CI and GitHub Releases.
 
 ## Project Structure
-
-HyprTools uses a Cargo Workspace to organize multiple independent applications.
 
 ```text
 hyprtools/
@@ -31,208 +31,352 @@ hyprtools/
 │       ├── Cargo.toml
 │       └── src/
 │           └── main.rs
+├── rofi-themes/
+│   ├── config-search.rasi
+│   └── config-brightness.rasi
 └── .github/
     └── workflows/
         └── release.yml
 ```
 
-Each application is an independent crate and can be built separately with Cargo.
+Each application is maintained as an independent crate inside a shared Cargo workspace.
 
-## Tools
+## Available Tools
 
-| Tool                 | Description                                                     | Status      |
-| -------------------- | --------------------------------------------------------------- | ----------- |
-| `rofi-search`        | Search the web or open website addresses directly through Rofi. | Implemented |
-| `brightness-control` | Gradually change display brightness to a requested percentage.  | Implemented |
-| `volume-control`     | Audio volume management utility.                                | Planned     |
+| Tool                 | Description                                                       | Status      |
+| -------------------- | ----------------------------------------------------------------- | ----------- |
+| `rofi-search`        | Search the web or open URLs directly through Rofi.                | Implemented |
+| `brightness-control` | Gradually adjust display brightness using Rofi and brightnessctl. | Implemented |
+| `volume-control`     | Audio volume management.                                          | Planned     |
 
 ## Requirements
 
 - Linux
-- Rust toolchain and Cargo (for building from source)
-- Required runtime utilities for each application
+- Rust and Cargo (only required when building from source)
+- Rofi
+- XDG utilities where required
+- Hyprland configuration for `rofi-search`
+- `brightnessctl` for `brightness-control`
 
-### rofi-search
+## Installation
 
-Runtime requirements:
+### Download a Release
 
-- `rofi`
-- `xdg-open`
-- `notify-send` (optional; used to display errors)
-- Hyprland configuration file at `~/.config/hypr/UserConfigs/user-defaults.lua`
-- Rofi theme at `~/.config/rofi/config-search.rasi`
+Prebuilt binaries are available on the [GitHub Releases](https://github.com/dex0o0/hyprtools/releases) page.
 
-The configuration must contain a `search_engine` setting with the `{}` placeholder.
-
-Example:
-
-```lua
-search_engine = "https://www.google.com/search?q={}"
-```
-
-Run the application:
+Download the appropriate binary and make it executable:
 
 ```bash
-cargo run --release -p rofi-search
+chmod +x rofi-search-linux-x86_64-gnu
+chmod +x brightness-control-linux-x86_64-gnu
 ```
 
-### brightness-control
-
-Runtime requirement:
-
-- `brightnessctl`
-
-Pass the target brightness as an integer percentage from 0 to 100.
-
-Example:
+You can then move the binaries to a directory in your `PATH`, for example:
 
 ```bash
-brightness-control 50
+mkdir -p ~/.local/bin
+
+mv rofi-search-linux-x86_64-gnu ~/.local/bin/rofi-search
+mv brightness-control-linux-x86_64-gnu ~/.local/bin/brightness-control
 ```
 
-Run directly from the workspace:
+### Build from Source
+
+Clone the repository:
 
 ```bash
-cargo run --release -p brightness-control -- 50
+git clone https://github.com/dex0o0/hyprtools.git
+cd hyprtools
 ```
 
-## Building
-
-### Build an individual tool
-
-```bash
-cargo build --release -p brightness-control
-```
-
-Or:
-
-```bash
-cargo build --release -p rofi-search
-```
-
-### Build the entire workspace
+Build the entire workspace:
 
 ```bash
 cargo build --release --workspace
 ```
 
-Cargo places the resulting binaries in:
+The binaries will be available in:
 
 ```text
 target/release/
 ```
 
-## Testing
+## Tools Documentation
 
-Run formatting checks:
+### 1. Rofi Search
 
-```bash
-cargo fmt --all -- --check
+A simple web search utility that uses Rofi as its input interface.
+
+**Features:**
+
+- Search the web using your configured search engine.
+- Open HTTP and HTTPS URLs directly.
+- Automatically recognize domain names and IP addresses.
+- Encode search queries, including special characters and Persian text.
+- Ignore empty input and handle cancelled Rofi sessions.
+
+#### Configuration
+
+The application reads the search engine URL from:
+
+```text
+~/.config/hypr/UserConfigs/user-defaults.lua
 ```
 
-Run Clippy:
+Add a `search_engine` setting containing the `{}` placeholder:
 
-```bash
-cargo clippy --workspace --all-targets -- -D warnings
+```lua
+search_engine = "https://www.google.com/search?q={}"
 ```
 
-Run all tests:
+You can use other search engines as well:
+
+```lua
+search_engine = "https://duckduckgo.com/?q={}"
+```
+
+#### Rofi Theme
+
+The repository includes a Rofi theme:
+
+```text
+rofi-themes/config-search.rasi
+```
+
+Copy it to the expected configuration location:
+
+```bash
+mkdir -p ~/.config/rofi
+
+cp rofi-themes/config-search.rasi \
+   ~/.config/rofi/config-search.rasi
+```
+
+#### Usage
+
+Run the application:
+
+```bash
+rofi-search
+```
+
+Or, when building from source:
+
+```bash
+cargo run --release -p rofi-search
+```
+
+Type a search query or website address into the Rofi input field.
+
+Examples:
+
+| Input               | Behavior                             |
+| ------------------- | ------------------------------------ |
+| `rust programming`  | Search the configured search engine. |
+| `github.com`        | Open GitHub directly.                |
+| `https://crates.io` | Open crates.io directly.             |
+| `192.168.1.1`       | Open the IP address directly.        |
+
+### 2. Brightness Control
+
+A brightness management utility that uses Rofi for input and `brightnessctl` to control display brightness.
+
+**Features:**
+
+- Interactive brightness input through Rofi.
+- Accepts percentage values from 0 to 100.
+- Reads current and maximum brightness.
+- Gradually adjusts brightness instead of changing it instantly.
+- Handles invalid input and command failures.
+
+#### Dependencies
+
+- `rofi`
+- `brightnessctl`
+
+#### Rofi Theme
+
+The repository includes a dedicated theme:
+
+```text
+rofi-themes/config-brightness.rasi
+```
+
+Install it:
+
+```bash
+mkdir -p ~/.config/rofi
+
+cp rofi-themes/config-brightness.rasi \
+   ~/.config/rofi/config-brightness.rasi
+```
+
+#### Usage
+
+Run the application:
+
+```bash
+brightness-control
+```
+
+Or, when building from source:
+
+```bash
+cargo run --release -p brightness-control
+```
+
+Rofi will open an input field. Enter a brightness percentage between `0` and `100`.
+
+For example:
+
+```text
+50
+```
+
+The application will gradually adjust the display brightness to the requested level.
+
+**Note:** This tool does not accept brightness percentages as command-line arguments. The input is collected through Rofi.
+
+## Development
+
+HyprTools uses a Cargo workspace, allowing individual applications to be developed and built independently.
+
+### Build Individual Tools
+
+```bash
+cargo build --release -p rofi-search
+cargo build --release -p brightness-control
+```
+
+### Build Everything
+
+```bash
+cargo build --release --workspace
+```
+
+### Run Tests
 
 ```bash
 cargo test --workspace
 ```
 
-These checks are also performed automatically by GitHub Actions.
+### Check Formatting
+
+```bash
+cargo fmt --all -- --check
+```
+
+### Run Clippy
+
+```bash
+cargo clippy --workspace --all-targets -- -D warnings
+```
+
+## Continuous Integration
+
+The project uses GitHub Actions to automatically validate changes.
+
+The workflow runs on pushes to `master` and pull requests targeting `master`.
+
+The CI pipeline performs:
+
+1. Rust toolchain setup.
+2. Formatting checks.
+3. Clippy analysis.
+4. Workspace tests.
+
+All checks must pass before the release job can run.
 
 ## Releases
 
-Tagged releases build static Linux x86_64 binaries for all implemented tools using the `x86_64-unknown-linux-musl` target.
+HyprTools uses Git tags to trigger automated releases.
 
-To create a release, push a version tag:
+To publish a new version:
 
 ```bash
-git tag v0.1.0
-git push origin v0.1.0
+git tag v0.3.0
+git push origin master
+git push origin v0.3.0
 ```
 
-GitHub Actions runs the workspace checks before building and publishing the binaries.
+GitHub Actions will:
 
-The resulting release contains:
+1. Run formatting checks.
+2. Run Clippy.
+3. Execute workspace tests.
+4. Build release binaries.
+5. Strip the binaries.
+6. Publish them as GitHub Release assets.
 
-- `rofi-search-linux-x86_64-musl`
-- `brightness-control-linux-x86_64-musl`
+Current release targets:
+
+| Binary                                | Target           |
+| ------------------------------------- | ---------------- |
+| `rofi-search-linux-x86_64-gnu`        | Linux x86_64 GNU |
+| `brightness-control-linux-x86_64-gnu` | Linux x86_64 GNU |
+
+These binaries are built on Ubuntu 24.04 using the default GNU toolchain.
 
 ## Roadmap
 
-### Core Development
+### Core
 
 - [x] Initialize the repository.
-- [x] Set up the Cargo Workspace.
-- [x] Add automated formatting checks.
-- [x] Add Clippy checks.
+- [x] Set up the Cargo workspace.
+- [x] Implement automated formatting checks.
+- [x] Configure Clippy.
 - [x] Add workspace tests.
 - [ ] Establish consistent project conventions.
-- [ ] Document configuration options for each utility.
 
 ### Rofi Search
 
-- [x] Read the search engine from the Hyprland configuration.
-- [x] Search the web using Rofi.
-- [x] Open recognized website addresses directly.
+- [x] Read search engine configuration from Hyprland settings.
+- [x] Implement Rofi-based search.
+- [x] Detect and open URLs directly.
 - [x] Support URL encoding.
-- [x] Add unit tests for URL detection.
-- [x] Add tests for configuration parsing.
+- [x] Add unit tests.
 - [ ] Improve configuration parsing.
-- [ ] Support additional search engines.
-- [ ] Improve handling of invalid URLs and configuration files.
+- [ ] Support additional search engine options.
 
 ### Brightness Control
 
-- [x] Implement brightness percentage input.
+- [x] Implement Rofi-based percentage input.
 - [x] Read current and maximum brightness.
-- [x] Gradually change brightness.
-- [x] Handle invalid input and command errors.
-- [ ] Improve test coverage.
-- [ ] Add support for additional brightness backends.
+- [x] Implement gradual brightness transitions.
+- [x] Handle invalid input and command failures.
+- [x] Add unit tests.
+- [ ] Support additional brightness backends.
 
 ### Additional Utilities
 
 - [ ] Implement volume control.
-- [ ] Identify useful Bash scripts that can be replaced with Rust.
-- [ ] Add more Hyprland workflow utilities.
+- [ ] Identify more useful shell scripts to rewrite in Rust.
+- [ ] Add additional Hyprland workflow utilities.
 
 ### Build and Distribution
 
-- [x] Configure static Linux builds using musl.
-- [x] Support x86_64 Linux releases.
-- [x] Automate builds using GitHub Actions.
+- [x] Automate CI with GitHub Actions.
+- [x] Build Linux x86_64 release binaries.
 - [x] Publish binaries through GitHub Releases.
 - [ ] Add AArch64 Linux builds.
 - [ ] Provide an installation script.
-- [ ] Add installation and upgrade instructions.
-
-### Documentation and Community
-
-- [ ] Write documentation for each utility.
-- [ ] Add usage examples.
-- [ ] Document dependencies and requirements.
-- [ ] Add contribution guidelines.
+- [ ] Improve installation and upgrade documentation.
 
 ## Design Philosophy
 
 **Simplicity:** Each utility should solve a specific problem without unnecessary complexity.
 
-**Reliability:** Applications should handle errors properly instead of silently failing.
+**Reliability:** Applications should handle errors explicitly and behave predictably.
 
-**Maintainability:** Code should be structured in a way that makes future development straightforward.
+**Maintainability:** Code should remain easy to understand, test, and extend.
 
-**Independence:** Each utility should be usable without requiring the entire collection.
+**Independence:** Each tool should work independently without requiring the entire collection.
 
-**Practicality:** Features should solve real desktop workflow problems rather than exist just for the sake of adding functionality.
+**Practicality:** Features should improve real desktop workflows.
 
 ## Contributing
 
-Contributions, bug reports, and suggestions are welcome.
+Contributions, bug reports, and feature suggestions are welcome.
 
 If you have an idea for a useful Linux desktop utility or want to improve an existing tool, feel free to open an issue or submit a pull request.
 
