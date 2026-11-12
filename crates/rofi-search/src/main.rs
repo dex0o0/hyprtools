@@ -38,6 +38,8 @@ fn run() -> Result<(), Box<dyn Error>> {
             "-i",
             "-config",
             theme_path.to_str().ok_or("Invalid theme path")?,
+            "-p",
+            "Search",
             "-mesg",
             "Search the web",
         ])
